@@ -19,26 +19,43 @@ import VitalsCard from './components/VitalsCard.jsx';
 import TrendChart from './components/TrendChart.jsx';
 import AlertFeed from './components/AlertFeed.jsx';
 import { VitalsSimulator } from './lib/dataSimulator.js';
+import { AnomalyDetector } from './lib/anomalyDetector.js';
 
 export default function App() {
   const simulatorRef = useRef(null);
+  const detectorRef = useRef(null);
   const [latestVitals, setLatestVitals] = useState(null);
+  const [alerts, setAlerts] = useState({ active: [], all: [] });
 
   useEffect(() => {
-    // Initialize simulator instance
+    // Initialize simulator & detector instances
     simulatorRef.current = new VitalsSimulator();
+    detectorRef.current = new AnomalyDetector();
 
-    // Initial tick on mount
+    // Initial tick & analysis on mount
     const initialReading = simulatorRef.current.tick();
     setLatestVitals(initialReading);
+    const initialAnalysis = detectorRef.current.analyze(simulatorRef.current.getHistory());
+    setAlerts({ active: initialAnalysis.activeAlerts, all: initialAnalysis.allAlerts });
     console.log('[VitalGuard Simulator Initialized]:', initialReading);
 
     // Tick every 2 seconds
     const interval = setInterval(() => {
-      if (simulatorRef.current) {
+      if (simulatorRef.current && detectorRef.current) {
         const reading = simulatorRef.current.tick();
         setLatestVitals(reading);
         console.log('[VitalGuard Simulator Tick]:', reading);
+
+        // Run anomaly detection analysis on updated rolling history
+        const analysis = detectorRef.current.analyze(simulatorRef.current.getHistory());
+        setAlerts({ active: analysis.activeAlerts, all: analysis.allAlerts });
+
+        // Log any newly triggered alerts
+        if (analysis.newAlerts && analysis.newAlerts.length > 0) {
+          analysis.newAlerts.forEach((newAlert) => {
+            console.warn(`[VitalGuard Anomaly Detected] [${newAlert.severity.toUpperCase()}]:`, newAlert);
+          });
+        }
       }
     }, 2000);
 
