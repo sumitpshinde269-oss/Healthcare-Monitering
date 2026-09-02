@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Activity, 
   ShieldAlert, 
@@ -18,8 +18,33 @@ import PatientProfile from './components/PatientProfile.jsx';
 import VitalsCard from './components/VitalsCard.jsx';
 import TrendChart from './components/TrendChart.jsx';
 import AlertFeed from './components/AlertFeed.jsx';
+import { VitalsSimulator } from './lib/dataSimulator.js';
 
 export default function App() {
+  const simulatorRef = useRef(null);
+  const [latestVitals, setLatestVitals] = useState(null);
+
+  useEffect(() => {
+    // Initialize simulator instance
+    simulatorRef.current = new VitalsSimulator();
+
+    // Initial tick on mount
+    const initialReading = simulatorRef.current.tick();
+    setLatestVitals(initialReading);
+    console.log('[VitalGuard Simulator Initialized]:', initialReading);
+
+    // Tick every 2 seconds
+    const interval = setInterval(() => {
+      if (simulatorRef.current) {
+        const reading = simulatorRef.current.tick();
+        setLatestVitals(reading);
+        console.log('[VitalGuard Simulator Tick]:', reading);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col">
       {/* Top Navigation / Header Bar */}
