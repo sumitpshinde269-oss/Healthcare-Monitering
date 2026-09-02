@@ -1,125 +1,176 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Heart, 
   Activity, 
   Footprints, 
   ArrowUpRight, 
   ArrowDownRight, 
-  TrendingUp,
-  AlertCircle
+  Minus,
+  AlertTriangle,
+  AlertCircle,
+  CheckCircle2
 } from 'lucide-react';
 
+// Smooth counting micro-animation component
+function AnimatedNumber({ value, duration = 400 }) {
+  const [displayValue, setDisplayValue] = useState(typeof value === 'number' ? value : 0);
+  const startValRef = useRef(displayValue);
+  const startTimeRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof value !== 'number') {
+      setDisplayValue(value);
+      return;
+    }
+
+    const start = displayValue;
+    const target = value;
+    const startTime = performance.now();
+
+    const animate = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(start + (target - start) * easeProgress);
+
+      setDisplayValue(current);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    const animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId);
+  }, [value, duration]);
+
+  return <span>{typeof displayValue === 'number' ? displayValue.toLocaleString() : displayValue}</span>;
+}
+
 export default function VitalsCard({
-  title = "Heart Rate",
-  value = "74",
+  label = "Heart Rate",
+  value = "--",
   unit = "BPM",
-  status = "normal", // 'optimal' | 'normal' | 'warning' | 'critical'
-  statusLabel = "Normal",
-  change = "+2 BPM",
-  trend = "up",
-  range = "Range: 60 - 100 BPM",
-  type = "heartRate"
+  status = "normal", // 'normal' | 'warning' | 'critical'
+  icon: IconComponent = Heart,
+  trend = "stable", // 'up' | 'down' | 'stable'
+  range = "Normal Range",
+  changeText = "",
+  isLoading = false
 }) {
-  // Config per vital type
-  const configs = {
-    heartRate: {
-      icon: Heart,
-      iconColor: "text-rose-500",
-      bgColor: "bg-rose-50",
-      borderColor: "border-rose-100",
-      waveColor: "#F43F5E",
-      wavePath: "M 0,25 Q 15,10 30,25 T 60,25 T 75,5 T 85,40 T 95,20 T 110,25 L 140,25"
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs flex flex-col justify-between h-40">
+        <div className="flex items-center justify-between">
+          <div className="w-24 h-4 rounded skeleton-shimmer" />
+          <div className="w-16 h-5 rounded skeleton-shimmer" />
+        </div>
+        <div className="w-28 h-10 rounded skeleton-shimmer my-2" />
+        <div className="w-full h-3 rounded skeleton-shimmer" />
+      </div>
+    );
+  }
+
+  // Color configuration by status
+  const statusConfig = {
+    normal: {
+      accentColor: "bg-[#0F766E]",
+      borderColor: "border-slate-200/80 hover:border-teal-500/40",
+      cardBg: "bg-white",
+      glowClass: "",
+      badgeClass: "bg-teal-50 text-[#0F766E] border-teal-200",
+      badgeText: "Normal",
+      iconBg: "bg-teal-50 text-[#0F766E] border-teal-100"
     },
-    spo2: {
-      icon: Activity,
-      iconColor: "text-[#0F766E]",
-      bgColor: "bg-teal-50",
-      borderColor: "border-teal-100",
-      waveColor: "#0F766E",
-      wavePath: "M 0,20 Q 20,15 40,22 T 80,18 T 110,21 L 140,20"
+    warning: {
+      accentColor: "bg-[#F59E0B]",
+      borderColor: "border-amber-300 ring-1 ring-amber-200",
+      cardBg: "bg-amber-50/25",
+      glowClass: "animate-warning-glow",
+      badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
+      badgeText: "Warning",
+      iconBg: "bg-amber-50 text-amber-600 border-amber-200"
     },
-    steps: {
-      icon: Footprints,
-      iconColor: "text-indigo-500",
-      bgColor: "bg-indigo-50",
-      borderColor: "border-indigo-100",
-      waveColor: "#6366F1",
-      wavePath: "M 0,30 L 25,26 L 50,22 L 75,18 L 100,12 L 125,8 L 140,6"
+    critical: {
+      accentColor: "bg-[#DC2626]",
+      borderColor: "border-rose-400",
+      cardBg: "bg-rose-50/30",
+      glowClass: "animate-critical-glow",
+      badgeClass: "bg-rose-100 text-rose-700 border-rose-300 font-bold",
+      badgeText: "Critical",
+      iconBg: "bg-rose-100 text-rose-600 border-rose-200"
     }
   };
 
-  const currentConfig = configs[type] || configs.heartRate;
-  const IconComponent = currentConfig.icon;
-
-  const statusBadgeClasses = {
-    optimal: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    normal: "bg-teal-50 text-[#0F766E] border-teal-200",
-    warning: "bg-amber-50 text-amber-700 border-amber-200",
-    critical: "bg-rose-50 text-rose-700 border-rose-200 animate-pulse"
-  };
+  const current = statusConfig[status] || statusConfig.normal;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group">
-      {/* Decorative top accent line */}
-      <div className={`absolute top-0 left-0 right-0 h-1 ${
-        status === 'critical' ? 'bg-rose-500' :
-        status === 'warning' ? 'bg-amber-500' :
-        'bg-[#0F766E]'
-      }`} />
+    <div 
+      className={`rounded-2xl border p-5 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden flex flex-col justify-between ${current.cardBg} ${current.borderColor} ${current.glowClass}`}
+    >
+      {/* Top accent bar */}
+      <div className={`absolute top-0 left-0 right-0 h-1.5 transition-colors duration-300 ${current.accentColor}`} />
 
       {/* Header */}
       <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2">
-          <div className={`p-2 rounded-xl ${currentConfig.bgColor} ${currentConfig.borderColor} border`}>
-            <IconComponent className={`w-4 h-4 ${currentConfig.iconColor}`} />
+        <div className="flex items-center gap-2.5">
+          <div className={`p-2 rounded-xl border transition-colors duration-300 ${current.iconBg}`}>
+            {IconComponent && <IconComponent className="w-4 h-4" />}
           </div>
-          <span className="text-xs font-semibold text-slate-600">{title}</span>
+          <span className="text-xs font-semibold text-slate-700">{label}</span>
         </div>
 
-        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${statusBadgeClasses[status] || statusBadgeClasses.normal}`}>
-          {statusLabel}
+        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border flex items-center gap-1 transition-all duration-300 ${current.badgeClass}`}>
+          {status === 'critical' && <AlertCircle className="w-3 h-3 text-rose-600" />}
+          {status === 'warning' && <AlertTriangle className="w-3 h-3 text-amber-600" />}
+          {status === 'normal' && <CheckCircle2 className="w-3 h-3 text-teal-600" />}
+          {current.badgeText}
         </span>
       </div>
 
-      {/* Main Metric & Mini Wave */}
-      <div className="flex items-baseline justify-between mt-1 mb-2">
+      {/* Main Metric & Trend Arrow */}
+      <div className="flex items-baseline justify-between my-2">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-3xl font-extrabold text-slate-900 tracking-tight">{value}</span>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{unit}</span>
+          <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight font-mono">
+            {typeof value === 'number' ? <AnimatedNumber value={value} /> : value}
+          </span>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            {unit}
+          </span>
         </div>
 
-        {/* Dynamic mini SVG wave */}
-        <div className="w-24 h-9 opacity-80 group-hover:opacity-100 transition-opacity">
-          <svg viewBox="0 0 140 45" className="w-full h-full overflow-visible">
-            <defs>
-              <linearGradient id={`grad-${type}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor={currentConfig.waveColor} stopOpacity="0.25" />
-                <stop offset="100%" stopColor={currentConfig.waveColor} stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-            <path
-              d={`${currentConfig.wavePath} L 140,45 L 0,45 Z`}
-              fill={`url(#grad-${type})`}
-            />
-            <path
-              d={currentConfig.wavePath}
-              fill="none"
-              stroke={currentConfig.waveColor}
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+        {/* Trend Indicator */}
+        <div className="flex items-center gap-1 text-xs font-semibold">
+          {trend === 'up' && (
+            <span className="flex items-center text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200/60 shadow-2xs" title="Trending Upward">
+              <ArrowUpRight className="w-3.5 h-3.5" />
+              <span className="text-[10px] font-mono font-bold">UP</span>
+            </span>
+          )}
+          {trend === 'down' && (
+            <span className="flex items-center text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/60 shadow-2xs" title="Trending Downward">
+              <ArrowDownRight className="w-3.5 h-3.5" />
+              <span className="text-[10px] font-mono font-bold">DOWN</span>
+            </span>
+          )}
+          {trend === 'stable' && (
+            <span className="flex items-center text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60 shadow-2xs" title="Stable Rhythm">
+              <Minus className="w-3.5 h-3.5" />
+              <span className="text-[10px] font-mono font-bold">STABLE</span>
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Footer / Subtitle */}
-      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+      {/* Footer info */}
+      <div className="pt-2.5 border-t border-slate-100/80 flex items-center justify-between text-[11px] text-slate-500 font-medium">
         <span>{range}</span>
-        <span className="inline-flex items-center gap-0.5 text-slate-600 font-semibold">
-          {trend === 'up' ? <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDownRight className="w-3.5 h-3.5 text-slate-400" />}
-          {change}
-        </span>
+        {changeText && (
+          <span className="text-[11px] font-mono text-slate-600 font-medium">
+            {changeText}
+          </span>
+        )}
       </div>
     </div>
   );

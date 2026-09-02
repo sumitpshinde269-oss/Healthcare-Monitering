@@ -1,197 +1,335 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ReferenceArea
+} from 'recharts';
 import { 
-  LineChart, 
-  Clock, 
-  Calendar, 
-  Maximize2, 
-  SlidersHorizontal,
-  ChevronDown,
+  Activity, 
+  Heart, 
+  Layers, 
   Sparkles,
-  Info
+  SlidersHorizontal,
+  TrendingUp
 } from 'lucide-react';
 
-export default function TrendChart() {
-  const [selectedVital, setSelectedVital] = useState('heartRate');
-  const [selectedRange, setSelectedRange] = useState('24h');
+function CustomTooltip({ active, payload, label }) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const isCritical = data.heartRate > 140 || data.heartRate < 50 || data.spo2 < 92;
+    const isWarning = (data.heartRate > 100 && !isCritical) || (data.spo2 <= 95 && !isCritical);
 
-  const vitalsOptions = [
-    { id: 'heartRate', label: 'Heart Rate', color: '#0F766E', current: '74 BPM' },
-    { id: 'spo2', label: 'SpO2 Oxygen', color: '#0284C7', current: '98%' },
-    { id: 'bp', label: 'Blood Pressure', color: '#D97706', current: '120/80' },
-    { id: 'resp', label: 'Respiration', color: '#8B5CF6', current: '16 rpm' },
-  ];
+    return (
+      <div className="bg-slate-900/95 backdrop-blur-md text-white p-3.5 rounded-xl shadow-xl border border-slate-700 text-xs font-sans z-50">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-700 pb-1.5 mb-2">
+          <span className="text-[11px] font-mono text-slate-400">{data.formattedTime}</span>
+          {isCritical ? (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-500/30 text-rose-300 border border-rose-500/50">
+              CRITICAL ZONE
+            </span>
+          ) : isWarning ? (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300 border border-amber-500/50">
+              WARNING ZONE
+            </span>
+          ) : (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+              Normal
+            </span>
+          )}
+        </div>
 
-  const ranges = ['1h', '6h', '24h', '7d'];
+        <div className="space-y-1.5 font-mono">
+          <div className="flex items-center justify-between gap-4">
+            <span className="flex items-center gap-1.5 text-rose-400 font-sans text-[11px]">
+              <span className="w-2 h-2 rounded-full bg-rose-500" />
+              Heart Rate:
+            </span>
+            <span className="font-bold text-sm text-white">{data.heartRate} BPM</span>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <span className="flex items-center gap-1.5 text-sky-400 font-sans text-[11px]">
+              <span className="w-2 h-2 rounded-full bg-[#0F766E]" />
+              SpO2 Oxygen:
+            </span>
+            <span className="font-bold text-sm text-white">{data.spo2}%</span>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 text-[11px] text-slate-400 border-t border-slate-800 pt-1.5 mt-1.5 font-sans">
+            <span>Activity State:</span>
+            <span className="capitalize font-semibold text-slate-200">{data.state?.replace('_', ' ') || 'Resting'}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
+export default function TrendChart({ history = [], isLoading = false }) {
+  const [activeMetric, setActiveMetric] = useState('both'); // 'hr' | 'spo2' | 'both'
+
+  // Format data for Recharts
+  const chartData = useMemo(() => {
+    return history.map((item, index) => {
+      const date = new Date(item.timestamp);
+      const timeStr = isNaN(date.getTime())
+        ? `T-${history.length - index}`
+        : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      const isCritical = item.heartRate > 140 || item.heartRate < 50 || item.spo2 < 92 || item.activeAnomaly === 'tachycardia' || item.activeAnomaly === 'hypoxia' || item.activeAnomaly === 'bradycardia';
+      const isWarning = !isCritical && (item.heartRate > 100 || item.spo2 <= 95);
+
+      return {
+        ...item,
+        index,
+        formattedTime: timeStr,
+        anomalyLevel: isCritical ? 'critical' : isWarning ? 'warning' : 'normal'
+      };
+    });
+  }, [history]);
+
+  // Compute anomaly shaded zones across history
+  const anomalyZones = useMemo(() => {
+    if (chartData.length === 0) return [];
+    const zones = [];
+    let currentZone = null;
+
+    chartData.forEach((d, idx) => {
+      if (d.anomalyLevel !== 'normal') {
+        if (!currentZone) {
+          currentZone = { start: d.index, level: d.anomalyLevel };
+        } else if (currentZone.level !== d.anomalyLevel) {
+          zones.push({ ...currentZone, end: chartData[idx - 1].index });
+          currentZone = { start: d.index, level: d.anomalyLevel };
+        }
+      } else {
+        if (currentZone) {
+          zones.push({ ...currentZone, end: chartData[idx - 1].index });
+          currentZone = null;
+        }
+      }
+    });
+
+    if (currentZone) {
+      zones.push({ ...currentZone, end: chartData[chartData.length - 1].index });
+    }
+
+    return zones;
+  }, [chartData]);
+
+  // Compute dynamic summary metrics
+  const summary = useMemo(() => {
+    if (history.length === 0) {
+      return { avgHr: '--', minHr: '--', maxHr: '--', avgSpo2: '--' };
+    }
+    const hrs = history.map(h => h.heartRate);
+    const sumHr = hrs.reduce((a, b) => a + b, 0);
+    const avgHr = Math.round(sumHr / hrs.length);
+    const minHr = Math.min(...hrs);
+    const maxHr = Math.max(...hrs);
+
+    const spo2s = history.map(h => h.spo2);
+    const sumSpo2 = spo2s.reduce((a, b) => a + b, 0);
+    const avgSpo2 = (sumSpo2 / spo2s.length).toFixed(1);
+
+    return { avgHr, minHr, maxHr, avgSpo2 };
+  }, [history]);
+
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 sm:p-6 flex flex-col justify-between flex-1 gap-4">
+        <div className="flex items-center justify-between">
+          <div className="w-48 h-6 rounded skeleton-shimmer" />
+          <div className="w-32 h-8 rounded skeleton-shimmer" />
+        </div>
+        <div className="w-full h-64 rounded-xl skeleton-shimmer my-2" />
+        <div className="grid grid-cols-4 gap-3">
+          <div className="h-14 rounded-lg skeleton-shimmer" />
+          <div className="h-14 rounded-lg skeleton-shimmer" />
+          <div className="h-14 rounded-lg skeleton-shimmer" />
+          <div className="h-14 rounded-lg skeleton-shimmer" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 flex flex-col justify-between flex-1">
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 sm:p-6 flex flex-col justify-between flex-1 gap-3">
       {/* Chart Header Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3.5 border-b border-slate-100">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-base font-bold text-slate-900">Telemetry & Trend Analysis</h3>
+            <h3 className="text-base font-bold text-slate-900 tracking-tight">Telemetry & Trend Analysis</h3>
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-teal-50 text-[#0F766E] border border-teal-200 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[#0F766E] animate-ping" />
-              Live Stream
+              Live Telemetry
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">Continuous physiological trend monitoring & forecast</p>
+          <p className="text-xs text-slate-500 mt-0.5 font-normal">
+            Continuous physiological telemetry streaming (Rolling 60-readings buffer)
+          </p>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2">
-          {/* Time range toggle */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-lg">
-            {ranges.map((range) => (
-              <button
-                key={range}
-                onClick={() => setSelectedRange(range)}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
-                  selectedRange === range
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                {range.toUpperCase()}
-              </button>
-            ))}
-          </div>
-
-          <button className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg border border-slate-200 cursor-pointer transition-colors" title="Filter & Calibrate">
-            <SlidersHorizontal className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Vital Metric Selector Tabs */}
-      <div className="flex items-center gap-2 my-3 overflow-x-auto pb-1">
-        {vitalsOptions.map((vital) => (
+        {/* Metric Toggle Tabs */}
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
           <button
-            key={vital.id}
-            onClick={() => setSelectedVital(vital.id)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer shrink-0 ${
-              selectedVital === vital.id
-                ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+            onClick={() => setActiveMetric('hr')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeMetric === 'hr'
+                ? 'bg-rose-500 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <span 
-              className="w-2 h-2 rounded-full" 
-              style={{ backgroundColor: selectedVital === vital.id ? '#5EEAD4' : vital.color }} 
-            />
-            <span>{vital.label}</span>
-            <span className={selectedVital === vital.id ? 'text-teal-200 font-bold' : 'text-slate-500'}>
-              {vital.current}
-            </span>
+            <Heart className="w-3.5 h-3.5" />
+            Heart Rate
           </button>
-        ))}
+          <button
+            onClick={() => setActiveMetric('spo2')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeMetric === 'spo2'
+                ? 'bg-[#0F766E] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5" />
+            SpO2
+          </button>
+          <button
+            onClick={() => setActiveMetric('both')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeMetric === 'both'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            Both
+          </button>
+        </div>
       </div>
 
-      {/* Main SVG Telemetry Chart Canvas */}
-      <div className="relative w-full h-56 my-2 bg-slate-50/70 rounded-xl border border-slate-200/60 p-3 flex flex-col justify-between overflow-hidden">
-        {/* Normal Range Reference Zone */}
-        <div className="absolute top-[28%] bottom-[28%] left-10 right-3 bg-teal-500/5 border-y border-teal-500/20 pointer-events-none rounded flex items-center justify-end pr-2">
-          <span className="text-[10px] font-semibold text-teal-700/60 bg-teal-100/50 px-1.5 py-0.5 rounded">
-            Target Baseline Zone (60-90 BPM)
+      {/* Legend & Shaded Region Keys */}
+      <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 gap-2">
+        <div className="flex items-center gap-4">
+          {(activeMetric === 'hr' || activeMetric === 'both') && (
+            <span className="flex items-center gap-1.5 font-medium text-slate-700">
+              <span className="w-3 h-1 bg-rose-500 rounded-full inline-block" />
+              Heart Rate (BPM)
+            </span>
+          )}
+          {(activeMetric === 'spo2' || activeMetric === 'both') && (
+            <span className="flex items-center gap-1.5 font-medium text-slate-700">
+              <span className="w-3 h-1 bg-[#0F766E] rounded-full inline-block" />
+              SpO2 Oxygen (%)
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <span className="flex items-center gap-1.5 text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 font-medium">
+            <span className="w-2 h-2 rounded bg-amber-400" />
+            Warning Zone
+          </span>
+          <span className="flex items-center gap-1.5 text-rose-800 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200 font-medium">
+            <span className="w-2 h-2 rounded bg-rose-500" />
+            Critical Zone
           </span>
         </div>
-
-        {/* Y Axis Grid Lines */}
-        <div className="absolute inset-0 flex flex-col justify-between py-6 px-3 pointer-events-none">
-          <div className="border-b border-slate-200/70 w-full flex items-center justify-between text-[10px] text-slate-400 font-mono">
-            <span>120</span>
-          </div>
-          <div className="border-b border-slate-200/70 w-full flex items-center justify-between text-[10px] text-slate-400 font-mono">
-            <span>90</span>
-          </div>
-          <div className="border-b border-slate-200/70 w-full flex items-center justify-between text-[10px] text-slate-400 font-mono">
-            <span>60</span>
-          </div>
-          <div className="border-b border-slate-200/70 w-full flex items-center justify-between text-[10px] text-slate-400 font-mono">
-            <span>30</span>
-          </div>
-        </div>
-
-        {/* High-Fidelity SVG Waveform Line */}
-        <div className="relative w-full h-full pl-8">
-          <svg viewBox="0 0 600 160" preserveAspectRatio="none" className="w-full h-full">
-            <defs>
-              <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#0F766E" stopOpacity="0.28" />
-                <stop offset="70%" stopColor="#0F766E" stopOpacity="0.05" />
-                <stop offset="100%" stopColor="#0F766E" stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-
-            {/* Filled Area */}
-            <path
-              d="M 0,105 
-                 C 40,95 70,110 100,85 
-                 C 130,60 160,95 200,90 
-                 C 240,85 270,60 310,75 
-                 C 350,90 380,115 420,70 
-                 C 460,25 490,95 530,80 
-                 C 565,68 580,72 600,68 
-                 L 600,160 L 0,160 Z"
-              fill="url(#chartGradient)"
-            />
-
-            {/* Main Smooth Curve */}
-            <path
-              d="M 0,105 
-                 C 40,95 70,110 100,85 
-                 C 130,60 160,95 200,90 
-                 C 240,85 270,60 310,75 
-                 C 350,90 380,115 420,70 
-                 C 460,25 490,95 530,80 
-                 C 565,68 580,72 600,68"
-              fill="none"
-              stroke="#0F766E"
-              strokeWidth="2.8"
-              strokeLinecap="round"
-            />
-
-            {/* Data Points */}
-            <circle cx="200" cy="90" r="4" fill="#0F766E" className="ring-4 ring-white" />
-            <circle cx="420" cy="70" r="4" fill="#0F766E" className="ring-4 ring-white" />
-            <circle cx="460" cy="25" r="5" fill="#DC2626" stroke="#ffffff" strokeWidth="2" />
-            
-            {/* Anomaly Annotation Marker */}
-            <g transform="translate(460, 20)">
-              <line x1="0" y1="5" x2="0" y2="25" stroke="#DC2626" strokeWidth="1" strokeDasharray="2 2" />
-            </g>
-          </svg>
-        </div>
-
-        {/* X Axis Timestamps */}
-        <div className="flex justify-between items-center text-[10px] font-mono text-slate-400 pl-8 pt-1">
-          <span>00:00</span>
-          <span>04:00</span>
-          <span>08:00</span>
-          <span>12:00</span>
-          <span>16:00</span>
-          <span>20:00</span>
-          <span className="text-[#0F766E] font-bold">Now</span>
-        </div>
       </div>
 
-      {/* Summary Stats Row */}
-      <div className="grid grid-cols-4 gap-3 pt-3 border-t border-slate-100 text-xs">
-        <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-          <span className="text-[11px] text-slate-400 block font-medium">Mean (Avg)</span>
-          <span className="text-sm font-bold text-slate-800">74 BPM</span>
+      {/* Recharts Canvas */}
+      <div className="w-full h-64 my-1 bg-slate-50/70 rounded-xl border border-slate-200/60 p-2">
+        {chartData.length === 0 ? (
+          <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">
+            Awaiting telemetry buffer ticks...
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 10, right: 15, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+              
+              <XAxis 
+                dataKey="formattedTime" 
+                tick={{ fontSize: 10, fill: '#94A3B8' }}
+                interval="preserveStartEnd"
+                minTickGap={30}
+              />
+              
+              <YAxis 
+                domain={['auto', 'auto']} 
+                tick={{ fontSize: 10, fill: '#94A3B8' }}
+                orientation="left"
+              />
+
+              <Tooltip content={<CustomTooltip />} />
+
+              {/* Anomaly Timeline Background Shading */}
+              {anomalyZones.map((zone, zIdx) => (
+                <ReferenceArea
+                  key={zIdx}
+                  x1={chartData[zone.start]?.formattedTime}
+                  x2={chartData[zone.end]?.formattedTime}
+                  fill={zone.level === 'critical' ? '#F43F5E' : '#F59E0B'}
+                  fillOpacity={zone.level === 'critical' ? 0.22 : 0.15}
+                  strokeOpacity={0}
+                />
+              ))}
+
+              {/* Heart Rate Line */}
+              {(activeMetric === 'hr' || activeMetric === 'both') && (
+                <Line
+                  type="monotone"
+                  dataKey="heartRate"
+                  stroke="#F43F5E"
+                  strokeWidth={2.5}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              )}
+
+              {/* SpO2 Line */}
+              {(activeMetric === 'spo2' || activeMetric === 'both') && (
+                <Line
+                  type="monotone"
+                  dataKey="spo2"
+                  stroke="#0F766E"
+                  strokeWidth={2.5}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
+      {/* Summary Stats Footer */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2.5 border-t border-slate-100 text-xs">
+        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100/90 shadow-2xs">
+          <span className="text-[11px] text-slate-400 block font-medium">Mean HR</span>
+          <span className="text-sm font-bold text-slate-800 font-mono">{summary.avgHr} BPM</span>
         </div>
-        <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-          <span className="text-[11px] text-slate-400 block font-medium">Min (24h)</span>
-          <span className="text-sm font-bold text-slate-800">58 BPM</span>
+        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100/90 shadow-2xs">
+          <span className="text-[11px] text-slate-400 block font-medium">Min HR (60t)</span>
+          <span className="text-sm font-bold text-slate-800 font-mono">{summary.minHr} BPM</span>
         </div>
-        <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-          <span className="text-[11px] text-slate-400 block font-medium">Max Spike</span>
-          <span className="text-sm font-bold text-rose-600">114 BPM</span>
+        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100/90 shadow-2xs">
+          <span className="text-[11px] text-slate-400 block font-medium">Peak HR Spike</span>
+          <span className={`text-sm font-bold font-mono ${Number(summary.maxHr) > 130 ? 'text-rose-600' : 'text-slate-800'}`}>
+            {summary.maxHr} BPM
+          </span>
         </div>
-        <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-          <span className="text-[11px] text-slate-400 block font-medium">Variability</span>
-          <span className="text-sm font-bold text-emerald-600">± 4.2%</span>
+        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100/90 shadow-2xs">
+          <span className="text-[11px] text-slate-400 block font-medium">Avg SpO2</span>
+          <span className={`text-sm font-bold font-mono ${Number(summary.avgSpo2) < 95 ? 'text-amber-600' : 'text-[#0F766E]'}`}>
+            {summary.avgSpo2}%
+          </span>
         </div>
       </div>
     </div>
