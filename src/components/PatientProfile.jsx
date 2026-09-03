@@ -16,19 +16,16 @@ export default function PatientProfile({ healthStatus = "stable", isLoading = fa
     stable: {
       label: "Stable",
       badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-200/80",
-      dotClass: "bg-emerald-500",
       icon: ShieldCheck
     },
     warning: {
       label: "Monitor",
       badgeClass: "bg-amber-50 text-amber-800 border-amber-200/80",
-      dotClass: "bg-amber-500",
       icon: AlertTriangle
     },
     critical: {
       label: "Attention Needed",
       badgeClass: "bg-rose-100 text-rose-800 border-rose-300 ring-1 ring-rose-200 animate-pulse font-bold",
-      dotClass: "bg-rose-600",
       icon: AlertCircle
     }
   };
@@ -54,12 +51,9 @@ export default function PatientProfile({ healthStatus = "stable", isLoading = fa
   if (isLoading) {
     return (
       <div className="surface-card p-5 sm:p-6 flex flex-col gap-5" aria-busy="true" aria-label="Loading patient profile">
-        <div className="flex items-center gap-3">
-          <div className="w-14 h-14 rounded-full skeleton-shimmer" />
-          <div className="space-y-2 flex-1">
-            <div className="w-32 h-5 rounded skeleton-shimmer" />
-            <div className="w-20 h-4 rounded skeleton-shimmer" />
-          </div>
+        <div className="space-y-2">
+          <div className="w-32 h-5 rounded skeleton-shimmer" />
+          <div className="w-20 h-4 rounded skeleton-shimmer" />
         </div>
         <div className="h-16 rounded-xl skeleton-shimmer" />
         <div className="space-y-3">
@@ -72,24 +66,12 @@ export default function PatientProfile({ healthStatus = "stable", isLoading = fa
   }
 
   return (
-    <article className="surface-card p-5 sm:p-6 flex flex-col gap-5 group">
+    <article className="surface-card p-5 sm:p-6 flex flex-col gap-5">
       {/* Patient Header */}
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-3.5 min-w-0">
-          <div className="relative shrink-0">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-50 to-teal-100/80 border border-[#0F766E]/20 flex items-center justify-center text-[#0F766E] font-bold text-lg shadow-inner transition-transform duration-300 group-hover:scale-[1.03]">
-              DP
-            </div>
-            <span 
-              className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 border-2 border-white rounded-full ${currentBadge.dotClass} transition-colors duration-300`} 
-              title={`Status: ${currentBadge.label}`}
-              aria-hidden="true"
-            />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-lg font-bold text-slate-900 leading-snug truncate">{patient.name}</h2>
-            <p className="text-xs font-medium text-slate-500 tracking-wide font-mono mt-0.5">MRN #{patient.id}</p>
-          </div>
+        <div className="min-w-0">
+          <h2 className="text-lg font-bold text-slate-900 leading-snug truncate">{patient.name}</h2>
+          <p className="text-xs font-medium text-slate-500 tracking-wide font-mono mt-0.5">MRN #{patient.id}</p>
         </div>
 
         <span

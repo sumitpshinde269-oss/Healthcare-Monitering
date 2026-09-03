@@ -133,33 +133,14 @@ export default function App() {
       <header className="sticky top-0 z-40 glass-header border-b border-slate-200/70" role="banner">
         <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
           
-          {/* Brand & Subtitle */}
+          {/* Brand */}
           <div className="flex items-center gap-3 sm:gap-5 min-w-0">
-            <div className="flex items-center gap-3 min-w-0">
-              <div
-                className="w-10 h-10 shrink-0 rounded-xl bg-[#0F766E] flex items-center justify-center text-white shadow-sm ring-1 ring-[#0F766E]/30 transition-transform duration-300 hover:scale-105"
-                aria-hidden="true"
-              >
-                <Activity className="w-5 h-5 stroke-[2.5]" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight leading-none">
-                    VitalGuard <span className="text-[#0F766E]">AI</span>
-                  </h1>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-teal-50 text-[#0F766E] border border-teal-200/80 uppercase tracking-wider">
-                    Live
-                  </span>
-                </div>
-                <p className="text-[11px] sm:text-xs text-slate-500 font-medium leading-snug mt-1 truncate">
-                  Continuous Health Anomaly Detection
-                </p>
-              </div>
-            </div>
+            <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight leading-none">
+              VitalGuard <span className="text-[#0F766E]">AI</span>
+            </h1>
 
             <div className="hidden md:block h-8 w-px bg-slate-200/80" aria-hidden="true" />
 
-            {/* Live Monitoring Active Status Pill */}
             <div
               className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50/90 border border-emerald-200/70"
               role="status"
@@ -245,17 +226,9 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 pl-2.5 border-l border-slate-200/80">
-              <div
-                className="w-9 h-9 rounded-full bg-slate-800 text-white font-semibold flex items-center justify-center text-xs ring-2 ring-white shadow-sm"
-                aria-hidden="true"
-              >
-                DR
-              </div>
-              <div className="hidden xl:block text-left">
-                <span className="text-xs font-bold text-slate-800 block leading-tight">Dr. Reynolds</span>
-                <span className="text-[10px] text-slate-400 font-medium block">Lead Intensivist</span>
-              </div>
+            <div className="hidden xl:block text-left pl-2.5 border-l border-slate-200/80">
+              <span className="text-xs font-bold text-slate-800 block leading-tight">Dr. Reynolds</span>
+              <span className="text-[10px] text-slate-400 font-medium block">Lead Intensivist</span>
             </div>
           </div>
 

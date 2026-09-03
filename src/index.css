@@ -52,10 +52,6 @@
 
   .page-atmosphere {
     background-color: var(--color-page);
-    background-image:
-      radial-gradient(ellipse 80% 50% at 0% -10%, rgba(15, 118, 110, 0.07), transparent 50%),
-      radial-gradient(ellipse 60% 40% at 100% 0%, rgba(14, 165, 233, 0.05), transparent 45%),
-      radial-gradient(ellipse 50% 30% at 50% 100%, rgba(15, 118, 110, 0.04), transparent 50%);
   }
 
   .surface-card {
