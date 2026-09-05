@@ -1,31 +1,30 @@
 import React from 'react';
 import { 
   Activity, 
-  FileText, 
-  PhoneCall, 
   AlertCircle, 
   MapPin, 
   Stethoscope, 
   Clock, 
   ShieldCheck, 
-  AlertTriangle 
+  AlertTriangle,
+  User
 } from 'lucide-react';
 
 export default function PatientProfile({ healthStatus = "stable", isLoading = false }) {
   const statusBadges = {
     stable: {
       label: "Stable",
-      badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-200/80",
+      badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
       icon: ShieldCheck
     },
     warning: {
-      label: "Monitor",
-      badgeClass: "bg-amber-50 text-amber-800 border-amber-200/80",
+      label: "Monitoring",
+      badgeClass: "bg-amber-50 text-amber-800 border-amber-200",
       icon: AlertTriangle
     },
     critical: {
-      label: "Attention Needed",
-      badgeClass: "bg-rose-100 text-rose-800 border-rose-300 ring-1 ring-rose-200 animate-pulse font-bold",
+      label: "Attention Required",
+      badgeClass: "bg-rose-50 text-rose-800 border-rose-200 font-semibold",
       icon: AlertCircle
     }
   };
@@ -41,16 +40,15 @@ export default function PatientProfile({ healthStatus = "stable", isLoading = fa
     bloodType: "A+",
     room: "ICU Ward 3B • Bed 12",
     admissionDate: "Oct 24, 2026",
-    diagnosis: "Post-op Coronary Artery Bypass (Day 3)",
+    diagnosis: "Post-op Coronary Artery Bypass",
     attendingPhysician: "Dr. Marcus Chen, MD",
     specialty: "Cardiovascular Surgery",
-    allergies: ["Penicillin", "Sulfa Drugs"],
-    emergencyContact: "Family Contact - +1 (555) 382-9912"
+    allergies: ["Penicillin", "Sulfa Drugs"]
   };
 
   if (isLoading) {
     return (
-      <div className="surface-card p-5 sm:p-6 flex flex-col gap-5" aria-busy="true" aria-label="Loading patient profile">
+      <div className="surface-card p-5 flex flex-col gap-4" aria-busy="true" aria-label="Loading patient profile">
         <div className="space-y-2">
           <div className="w-32 h-5 rounded skeleton-shimmer" />
           <div className="w-20 h-4 rounded skeleton-shimmer" />
@@ -66,81 +64,78 @@ export default function PatientProfile({ healthStatus = "stable", isLoading = fa
   }
 
   return (
-    <article className="surface-card p-5 sm:p-6 flex flex-col gap-5">
+    <article className="surface-card p-5 flex flex-col gap-4">
       {/* Patient Header */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h2 className="text-lg font-bold text-slate-900 leading-snug truncate">{patient.name}</h2>
-          <p className="text-xs font-medium text-slate-500 tracking-wide font-mono mt-0.5">MRN #{patient.id}</p>
+      <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-2 rounded-lg bg-teal-50 text-teal-700 border border-teal-100 shrink-0">
+            <User className="w-4 h-4" aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold text-slate-900 leading-tight truncate">{patient.name}</h2>
+            <p className="text-[11px] text-slate-500 font-mono mt-0.5">MRN #{patient.id}</p>
+          </div>
         </div>
 
         <span
-          className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0 transition-all duration-300 ${currentBadge.badgeClass}`}
+          className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-md border shrink-0 ${currentBadge.badgeClass}`}
           role="status"
         >
-          <BadgeIcon className="w-3.5 h-3.5" aria-hidden="true" />
+          <BadgeIcon className="w-3 h-3" aria-hidden="true" />
           {currentBadge.label}
         </span>
       </div>
 
-      {/* Quick Demographic Grid */}
-      <div className="grid grid-cols-3 gap-1 p-1 bg-slate-50/90 rounded-xl border border-slate-100/90" role="group" aria-label="Patient demographics">
-        <div className="text-center py-2.5 px-1 rounded-lg transition-colors hover:bg-white">
-          <span className="text-[10px] font-semibold text-slate-400 block uppercase tracking-[0.06em]">Age/Sex</span>
-          <span className="text-xs font-bold text-slate-800 font-mono mt-0.5 block">{patient.age}y · {patient.gender[0]}</span>
+      {/* Demographics Row */}
+      <div className="grid grid-cols-3 gap-2 p-2 bg-slate-50 rounded-lg border border-slate-100 text-center" role="group" aria-label="Patient demographics">
+        <div>
+          <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">Age / Sex</span>
+          <span className="text-xs font-semibold text-slate-800 font-mono mt-0.5 block">{patient.age}y · {patient.gender[0]}</span>
         </div>
-        <div className="text-center py-2.5 px-1 rounded-lg border-x border-slate-200/70 transition-colors hover:bg-white">
-          <span className="text-[10px] font-semibold text-slate-400 block uppercase tracking-[0.06em]">Blood</span>
-          <span className="text-xs font-bold text-[#0F766E] font-mono mt-0.5 block">{patient.bloodType}</span>
+        <div className="border-x border-slate-200">
+          <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">Blood Type</span>
+          <span className="text-xs font-semibold text-teal-700 font-mono mt-0.5 block">{patient.bloodType}</span>
         </div>
-        <div className="text-center py-2.5 px-1 rounded-lg transition-colors hover:bg-white">
-          <span className="text-[10px] font-semibold text-slate-400 block uppercase tracking-[0.06em]">Stay</span>
-          <span className="text-xs font-bold text-slate-800 mt-0.5 block">Day 3</span>
+        <div>
+          <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">Location</span>
+          <span className="text-xs font-semibold text-slate-800 mt-0.5 block truncate">Bed 12</span>
         </div>
       </div>
 
-      {/* Clinical Details */}
-      <div className="space-y-4 text-xs">
+      {/* Clinical Details List */}
+      <div className="space-y-3 text-xs">
         <div className="flex items-start gap-2.5">
-          <div className="p-1.5 rounded-lg bg-teal-50 text-[#0F766E] shrink-0 mt-0.5">
-            <MapPin className="w-3.5 h-3.5" aria-hidden="true" />
-          </div>
-          <div>
-            <span className="text-[10px] font-semibold text-slate-400 block uppercase tracking-[0.05em]">Location</span>
-            <span className="font-medium text-slate-800 text-[13px] leading-snug">{patient.room}</span>
+          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="min-w-0">
+            <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">Ward &amp; Room</span>
+            <span className="font-medium text-slate-800">{patient.room}</span>
           </div>
         </div>
 
         <div className="flex items-start gap-2.5">
-          <div className="p-1.5 rounded-lg bg-teal-50 text-[#0F766E] shrink-0 mt-0.5">
-            <Activity className="w-3.5 h-3.5" aria-hidden="true" />
-          </div>
-          <div>
-            <span className="text-[10px] font-semibold text-slate-400 block uppercase tracking-[0.05em]">Primary Diagnosis</span>
-            <span className="font-medium text-slate-800 text-[13px] leading-relaxed">{patient.diagnosis}</span>
+          <Activity className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="min-w-0">
+            <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">Primary Diagnosis</span>
+            <span className="font-medium text-slate-800 leading-snug">{patient.diagnosis}</span>
           </div>
         </div>
 
         <div className="flex items-start gap-2.5">
-          <div className="p-1.5 rounded-lg bg-teal-50 text-[#0F766E] shrink-0 mt-0.5">
-            <Stethoscope className="w-3.5 h-3.5" aria-hidden="true" />
-          </div>
-          <div>
-            <span className="text-[10px] font-semibold text-slate-400 block uppercase tracking-[0.05em]">Attending Physician</span>
-            <span className="font-semibold text-slate-800 text-[13px]">{patient.attendingPhysician}</span>
-            <p className="text-[11px] text-slate-500 font-medium mt-0.5">{patient.specialty}</p>
+          <Stethoscope className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="min-w-0">
+            <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">Attending Physician</span>
+            <span className="font-medium text-slate-800">{patient.attendingPhysician}</span>
+            <span className="text-[11px] text-slate-500 block">{patient.specialty}</span>
           </div>
         </div>
 
         <div className="flex items-start gap-2.5">
-          <div className="p-1.5 rounded-lg bg-rose-50 text-rose-500 shrink-0 mt-0.5">
-            <AlertCircle className="w-3.5 h-3.5" aria-hidden="true" />
-          </div>
-          <div>
-            <span className="text-[10px] font-semibold text-slate-400 block uppercase tracking-[0.05em]">Known Allergies</span>
-            <div className="flex flex-wrap gap-1.5 mt-1.5">
+          <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="min-w-0">
+            <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">Known Allergies</span>
+            <div className="flex flex-wrap gap-1 mt-1">
               {patient.allergies.map((allergy, idx) => (
-                <span key={idx} className="px-2 py-0.5 bg-rose-50 text-rose-700 border border-rose-200/80 rounded-md text-[11px] font-semibold transition-colors hover:bg-rose-100">
+                <span key={idx} className="px-1.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200/80 rounded text-[11px] font-medium">
                   {allergy}
                 </span>
               ))}
@@ -149,38 +144,11 @@ export default function PatientProfile({ healthStatus = "stable", isLoading = fa
         </div>
 
         <div className="flex items-start gap-2.5">
-          <div className="p-1.5 rounded-lg bg-slate-100 text-slate-500 shrink-0 mt-0.5">
-            <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+          <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="min-w-0">
+            <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">Admission Date</span>
+            <span className="font-medium text-slate-700">{patient.admissionDate}</span>
           </div>
-          <div>
-            <span className="text-[10px] font-semibold text-slate-400 block uppercase tracking-[0.05em]">Admitted</span>
-            <span className="font-medium text-slate-700 text-[13px]">{patient.admissionDate}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Emergency Contact & Actions */}
-      <div className="pt-4 border-t border-slate-100 flex flex-col gap-3">
-        <div className="bg-slate-50/90 p-3 rounded-xl text-[11px] text-slate-600 border border-slate-100 leading-relaxed">
-          <span className="font-semibold text-slate-700 block mb-0.5 text-[10px] uppercase tracking-[0.05em]">Emergency Contact</span>
-          {patient.emergencyContact}
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            className="px-3 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]/40"
-          >
-            <FileText className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
-            Full Chart
-          </button>
-          <button
-            type="button"
-            className="px-3 py-2.5 text-xs font-semibold rounded-xl bg-[#0F766E] text-white hover:bg-[#0d655e] flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]/50 focus-visible:ring-offset-2"
-          >
-            <PhoneCall className="w-3.5 h-3.5" aria-hidden="true" />
-            Page Nurse
-          </button>
         </div>
       </div>
     </article>
