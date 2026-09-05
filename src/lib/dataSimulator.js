@@ -130,6 +130,16 @@ export class VitalsSimulator {
   }
 
   /**
+   * Clear active anomaly immediately
+   */
+  clearAnomaly() {
+    this.activeAnomaly = null;
+    this.heartRate = 72;
+    this.spo2 = 98;
+    console.info('[VitalsSimulator] Anomaly cleared. Baseline restored.');
+  }
+
+  /**
    * Advance simulation by 1 tick and return latest telemetry reading
    * @returns {{ heartRate: number, spo2: number, steps: number, timestamp: string, state: string, activeAnomaly: string | null }}
    */
