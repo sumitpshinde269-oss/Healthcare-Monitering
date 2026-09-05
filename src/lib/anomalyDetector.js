@@ -18,6 +18,16 @@ export class AnomalyDetector {
   }
 
   /**
+   * Reset detector state
+   */
+  reset() {
+    this.alertLog = [];
+    this.activeAlerts.clear();
+    this.lastRapidChangeTick = -10;
+    this.totalTicksAnalyzed = 0;
+  }
+
+  /**
    * Analyze the rolling vitals history and update active/resolved alerts.
    * @param {Array<{ heartRate: number, spo2: number, steps: number, timestamp: string }>} history 
    * @returns {{ activeAlerts: Array<Object>, newAlerts: Array<Object>, allAlerts: Array<Object> }}
@@ -121,6 +131,7 @@ export class AnomalyDetector {
 
       if (hrDiff > 30 || hrRange > 30) {
         this.lastRapidChangeTick = this.totalTicksAnalyzed;
+        const alertKey = `irregular_rhythm_${Date.now()}`;
         const alert = {
           id: `ALT-${Date.now().toString().slice(-4)}-${Math.floor(Math.random() * 1000)}`,
           type: 'irregular_rhythm',
@@ -128,17 +139,20 @@ export class AnomalyDetector {
           message: `Irregular Rhythm Detected: acute HR fluctuation of ${Math.round(hrRange)} BPM within 3 readings`,
           value: `${latest.heartRate} BPM (Δ ${Math.round(hrRange)})`,
           timestamp: latest.timestamp,
-          status: 'active'
+          status: 'active',
+          expiresAtTick: this.totalTicksAnalyzed + 5
         };
 
         this.alertLog.unshift(alert);
-        this.activeAlerts.set(`irregular_rhythm_${alert.id}`, alert);
+        this.activeAlerts.set(alertKey, alert);
         newAlerts.push(alert);
+      }
+    }
 
-        // Auto-resolve acute rhythm spikes after normal recovery period
-        setTimeout(() => {
-          this._resolveAlert(`irregular_rhythm_${alert.id}`, new Date().toISOString());
-        }, 12000);
+    // Auto-resolve expired irregular rhythm events without setTimeouts
+    for (const [key, alert] of this.activeAlerts.entries()) {
+      if (alert.expiresAtTick && this.totalTicksAnalyzed >= alert.expiresAtTick) {
+        this._resolveAlert(key, latest.timestamp);
       }
     }
 
@@ -211,3 +225,4 @@ export class AnomalyDetector {
 }
 
 export const anomalyDetectorInstance = new AnomalyDetector();
+
