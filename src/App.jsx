@@ -177,15 +177,31 @@ export default function App() {
 
             <div className="hidden sm:block h-5 w-px bg-slate-200" aria-hidden="true" />
 
-            <div
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-medium text-emerald-700"
+            <button
+              type="button"
+              onClick={() => setIsPaused(!isPaused)}
+              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
+                isPaused 
+                  ? 'bg-amber-50 border-amber-300 text-amber-800'
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+              }`}
               role="status"
               aria-live="polite"
+              title={isPaused ? "Click to resume live telemetry stream" : "Click to pause telemetry stream"}
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Monitoring Active</span>
-              <span className="text-[10px] text-emerald-600 font-mono">· 2s</span>
-            </div>
+              {isPaused ? (
+                <>
+                  <Play className="w-3 h-3 text-amber-600 fill-current" aria-hidden="true" />
+                  <span>Stream Paused</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Monitoring Active</span>
+                  <span className="text-[10px] text-emerald-600 font-mono">· 2s</span>
+                </>
+              )}
+            </button>
           </div>
 
           {/* Anomaly Simulation Controls */}
@@ -242,22 +258,44 @@ export default function App() {
               Bradycardia
               {activeSimulation === 'bradycardia' && <span className="text-[10px] opacity-80">(Active)</span>}
             </button>
+
+            <div className="h-4 w-px bg-slate-200 mx-0.5" aria-hidden="true" />
+
+            <button
+              type="button"
+              onClick={handleResetBaseline}
+              className="px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400"
+              title="Reset simulation and return to baseline vitals"
+            >
+              <RotateCcw className="w-3 h-3 text-slate-500" aria-hidden="true" />
+              Reset
+            </button>
           </div>
 
         </div>
 
         {/* Mobile Simulation Controls */}
         <div className="md:hidden flex items-center justify-between px-4 py-2 bg-slate-100/90 border-t border-slate-200 text-xs gap-2">
-          <span className="text-slate-500 font-medium shrink-0 flex items-center gap-1">
-            <Sliders className="w-3 h-3" aria-hidden="true" />
-            Simulate:
-          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsPaused(!isPaused)}
+              className="p-1.5 rounded bg-white border border-slate-200 text-slate-700"
+              title={isPaused ? "Resume" : "Pause"}
+            >
+              {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+            </button>
+            <span className="text-slate-500 font-medium shrink-0 flex items-center gap-1">
+              <Sliders className="w-3 h-3" aria-hidden="true" />
+              Sim:
+            </span>
+          </div>
           <div className="flex items-center gap-1 overflow-x-auto">
             <button
               type="button"
               onClick={() => handleInjectAnomaly('tachycardia')}
               aria-pressed={activeSimulation === 'tachycardia'}
-              className={`px-2.5 py-1 rounded text-xs font-medium shrink-0 ${
+              className={`px-2 py-1 rounded text-xs font-medium shrink-0 ${
                 activeSimulation === 'tachycardia' ? 'bg-rose-600 text-white font-semibold' : 'bg-white text-slate-700 border border-slate-200'
               }`}
             >
@@ -267,7 +305,7 @@ export default function App() {
               type="button"
               onClick={() => handleInjectAnomaly('hypoxia')}
               aria-pressed={activeSimulation === 'hypoxia'}
-              className={`px-2.5 py-1 rounded text-xs font-medium shrink-0 ${
+              className={`px-2 py-1 rounded text-xs font-medium shrink-0 ${
                 activeSimulation === 'hypoxia' ? 'bg-amber-600 text-white font-semibold' : 'bg-white text-slate-700 border border-slate-200'
               }`}
             >
@@ -277,11 +315,19 @@ export default function App() {
               type="button"
               onClick={() => handleInjectAnomaly('bradycardia')}
               aria-pressed={activeSimulation === 'bradycardia'}
-              className={`px-2.5 py-1 rounded text-xs font-medium shrink-0 ${
+              className={`px-2 py-1 rounded text-xs font-medium shrink-0 ${
                 activeSimulation === 'bradycardia' ? 'bg-slate-800 text-white font-semibold' : 'bg-white text-slate-700 border border-slate-200'
               }`}
             >
               Bradycardia
+            </button>
+            <button
+              type="button"
+              onClick={handleResetBaseline}
+              className="p-1 rounded text-xs font-medium shrink-0 bg-white text-slate-700 border border-slate-200"
+              title="Reset baseline"
+            >
+              <RotateCcw className="w-3 h-3 text-slate-500" />
             </button>
           </div>
         </div>
