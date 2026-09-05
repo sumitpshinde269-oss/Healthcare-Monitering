@@ -2,7 +2,18 @@
   "name": "vitalguard-ai",
   "private": true,
   "version": "0.1.0",
-  "type": "module",
+  "description": "Continuous real-time health anomaly detection and clinical telemetry monitoring dashboard.",
+  "author": "VitalGuard AI Team",
+  "license": "MIT",
+  "keywords": [
+    "healthcare",
+    "telemetry",
+    "anomaly-detection",
+    "clinical-monitoring",
+    "react",
+    "vite",
+    "recharts"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",

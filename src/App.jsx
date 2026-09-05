@@ -7,7 +7,10 @@ import {
   HeartCrack,
   Footprints,
   Shield,
-  Sliders
+  Sliders,
+  Play,
+  Pause,
+  RotateCcw
 } from 'lucide-react';
 import PatientProfile from './components/PatientProfile.jsx';
 import VitalsCard from './components/VitalsCard.jsx';
@@ -21,6 +24,7 @@ export default function App() {
   const detectorRef = useRef(null);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
   const [latestVitals, setLatestVitals] = useState(null);
   const [history, setHistory] = useState([]);
   const [alerts, setAlerts] = useState({ active: [], all: [] });
@@ -45,7 +49,13 @@ export default function App() {
       }
     }, 400);
 
-    // Tick every 2 seconds
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Tick every 2 seconds when not paused
+  useEffect(() => {
+    if (isPaused) return;
+
     const interval = setInterval(() => {
       if (simulatorRef.current && detectorRef.current) {
         const reading = simulatorRef.current.tick();
@@ -70,11 +80,22 @@ export default function App() {
       }
     }, 2000);
 
-    return () => {
-      clearTimeout(timer);
-      clearInterval(interval);
-    };
-  }, []);
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
+  // Handle Reset to Normal Baseline
+  const handleResetBaseline = () => {
+    if (simulatorRef.current && detectorRef.current) {
+      simulatorRef.current.clearAnomaly();
+      setActiveSimulation(null);
+      const reading = simulatorRef.current.tick();
+      const currentHistory = simulatorRef.current.getHistory();
+      const analysis = detectorRef.current.analyze(currentHistory);
+      setLatestVitals(reading);
+      setHistory(currentHistory);
+      setAlerts({ active: analysis.activeAlerts, all: analysis.allAlerts });
+    }
+  };
 
   // Handle Demo Anomaly Injections (toggleable)
   const handleInjectAnomaly = (type) => {
