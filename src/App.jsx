@@ -16,6 +16,7 @@ import TrendChart from './components/TrendChart.jsx';
 import AlertFeed from './components/AlertFeed.jsx';
 import { VitalsSimulator } from './lib/dataSimulator.js';
 import { AnomalyDetector } from './lib/anomalyDetector.js';
+import { classifyHeartRate, classifySpo2 } from './lib/clinicalThresholds.js';
 
 export default function App() {
   const simulatorRef = useRef(null);
@@ -116,8 +117,8 @@ export default function App() {
   };
 
   // Compute Trends from last 5 readings
-  const { hrTrend, spo2Trend } = useMemo(() => {
-    if (history.length < 5) return { hrTrend: 'stable', spo2Trend: 'stable' };
+  const { hrTrend, spo2Trend, hrDelta, spo2Delta } = useMemo(() => {
+    if (history.length < 5) return { hrTrend: 'stable', spo2Trend: 'stable', hrDelta: 0, spo2Delta: 0 };
     const recent = history.slice(-5);
     const hrDiff = recent[4].heartRate - recent[0].heartRate;
     const spo2Diff = recent[4].spo2 - recent[0].spo2;
@@ -125,23 +126,12 @@ export default function App() {
     const hrTrend = hrDiff >= 4 ? 'up' : hrDiff <= -4 ? 'down' : 'stable';
     const spo2Trend = spo2Diff >= 1 ? 'up' : spo2Diff <= -1 ? 'down' : 'stable';
 
-    return { hrTrend, spo2Trend };
+    return { hrTrend, spo2Trend, hrDelta: hrDiff, spo2Delta: spo2Diff };
   }, [history]);
 
-  // Compute Current Metric Status
-  const hrStatus = useMemo(() => {
-    if (!latestVitals) return 'normal';
-    if (latestVitals.heartRate > 140 || latestVitals.heartRate < 50) return 'critical';
-    if (latestVitals.heartRate > 100) return 'warning';
-    return 'normal';
-  }, [latestVitals]);
-
-  const spo2Status = useMemo(() => {
-    if (!latestVitals) return 'normal';
-    if (latestVitals.spo2 < 92) return 'critical';
-    if (latestVitals.spo2 <= 95) return 'warning';
-    return 'normal';
-  }, [latestVitals]);
+  // Current metric status from the shared clinical thresholds
+  const hrStatus = latestVitals ? classifyHeartRate(latestVitals.heartRate) : 'normal';
+  const spo2Status = latestVitals ? classifySpo2(latestVitals.spo2) : 'normal';
 
   // Overall Patient Health Status for PatientProfile summary badge
   const overallHealthStatus = useMemo(() => {
@@ -361,7 +351,7 @@ export default function App() {
                 icon={Heart}
                 trend={hrTrend}
                 range="Baseline: 60 - 100"
-                changeText={hrTrend === 'up' ? '+5 vs baseline' : hrTrend === 'down' ? '-4 vs baseline' : 'Stable'}
+                changeText={hrTrend === 'stable' ? 'Stable' : `Δ ${hrDelta > 0 ? '+' : ''}${hrDelta} BPM`}
                 isLoading={isLoading}
               />
               <VitalsCard
@@ -372,7 +362,7 @@ export default function App() {
                 icon={Activity}
                 trend={spo2Trend}
                 range="Baseline: 95 - 100%"
-                changeText={spo2Status === 'critical' ? 'Hypoxic' : 'Optimal'}
+                changeText={spo2Status === 'critical' ? 'Hypoxic' : spo2Trend === 'stable' ? 'Optimal' : `Δ ${spo2Delta > 0 ? '+' : ''}${spo2Delta}%`}
                 isLoading={isLoading}
               />
             </div>

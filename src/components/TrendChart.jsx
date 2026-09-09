@@ -14,12 +14,13 @@ import {
   Heart, 
   Layers
 } from 'lucide-react';
+import { classifyHeartRate, classifySpo2 } from '../lib/clinicalThresholds.js';
 
 function CustomTooltip({ active, payload }) {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
-    const isCritical = data.heartRate > 140 || data.heartRate < 50 || data.spo2 < 92;
-    const isWarning = (data.heartRate > 100 && !isCritical) || (data.spo2 <= 95 && !isCritical);
+    const isCritical = classifyHeartRate(data.heartRate) === 'critical' || classifySpo2(data.spo2) === 'critical';
+    const isWarning = !isCritical && (classifyHeartRate(data.heartRate) === 'warning' || classifySpo2(data.spo2) === 'warning');
 
     return (
       <div className="bg-slate-900 text-white p-3 rounded-lg shadow-lg border border-slate-800 text-xs font-sans z-50 min-w-[170px]">
@@ -79,8 +80,11 @@ export default function TrendChart({ history = [], isLoading = false }) {
         ? `T-${history.length - index}`
         : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-      const isCritical = item.heartRate > 140 || item.heartRate < 50 || item.spo2 < 92 || item.activeAnomaly === 'tachycardia' || item.activeAnomaly === 'hypoxia' || item.activeAnomaly === 'bradycardia';
-      const isWarning = !isCritical && (item.heartRate > 100 || item.spo2 <= 95);
+      const isCritical =
+        classifyHeartRate(item.heartRate) === 'critical' ||
+        classifySpo2(item.spo2) === 'critical' ||
+        !!item.activeAnomaly;
+      const isWarning = !isCritical && (classifyHeartRate(item.heartRate) === 'warning' || classifySpo2(item.spo2) === 'warning');
 
       return {
         ...item,

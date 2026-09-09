@@ -139,6 +139,7 @@ npm run preview
 | :--- | :--- | :--- |
 | `npm run dev` | `vite` | Starts the local development server at `http://localhost:5173` |
 | `npm run build` | `vite build` | Compiles and minifies assets into the `dist/` directory |
+| `npm run check` | `vite build` | Validates the production build (no deploy) |
 | `npm run preview` | `vite preview` | Previews the production build locally |
 
 ---

@@ -3,6 +3,8 @@
  * Uses rolling window analysis over patient telemetry history to detect sustained and acute physiological anomalies.
  */
 
+import { ANOMALY_RULES } from './clinicalThresholds.js';
+
 export class AnomalyDetector {
   constructor() {
     // Internal full log of all alerts (active + resolved)
@@ -57,7 +59,7 @@ export class AnomalyDetector {
     const has5 = last5.length === 5;
 
     // Tachycardia (Warning: >100, Critical: >140)
-    if (has5 && last5.every(r => r.heartRate > 140)) {
+    if (has5 && last5.every(r => r.heartRate > ANOMALY_RULES.tachycardia.criticalAbove)) {
       this._handleTrigger(
         'tachycardia',
         'critical',
@@ -66,7 +68,7 @@ export class AnomalyDetector {
         latest.timestamp,
         newAlerts
       );
-    } else if (has5 && last5.every(r => r.heartRate > 100)) {
+    } else if (has5 && last5.every(r => r.heartRate > ANOMALY_RULES.tachycardia.warningAbove)) {
       this._handleTrigger(
         'tachycardia',
         'warning',
@@ -75,14 +77,14 @@ export class AnomalyDetector {
         latest.timestamp,
         newAlerts
       );
-    } else if (has5 && last5.every(r => r.heartRate >= 60 && r.heartRate <= 100)) {
+    } else if (has5 && last5.every(r => r.heartRate >= ANOMALY_RULES.normalHr.min && r.heartRate <= ANOMALY_RULES.normalHr.max)) {
       // Normal HR for 5+ readings -> resolve tachycardia and bradycardia
       this._resolveAlert('tachycardia', latest.timestamp);
       this._resolveAlert('bradycardia', latest.timestamp);
     }
 
     // Bradycardia (Critical: <50 sustained 5+ readings)
-    if (has5 && last5.every(r => r.heartRate < 50)) {
+    if (has5 && last5.every(r => r.heartRate < ANOMALY_RULES.bradycardia.criticalBelow)) {
       this._handleTrigger(
         'bradycardia',
         'critical',
@@ -99,7 +101,7 @@ export class AnomalyDetector {
     const last3 = getLastN(3);
     const has3 = last3.length === 3;
 
-    if (has3 && last3.every(r => r.spo2 < 92)) {
+    if (has3 && last3.every(r => r.spo2 < ANOMALY_RULES.hypoxia.criticalBelow)) {
       this._handleTrigger(
         'hypoxia',
         'critical',
@@ -108,7 +110,7 @@ export class AnomalyDetector {
         latest.timestamp,
         newAlerts
       );
-    } else if (has3 && last3.every(r => r.spo2 >= 94 && r.spo2 <= 95)) {
+    } else if (has3 && last3.every(r => r.spo2 >= ANOMALY_RULES.hypoxia.warningBand[0] && r.spo2 <= ANOMALY_RULES.hypoxia.warningBand[1])) {
       this._handleTrigger(
         'hypoxia',
         'warning',
@@ -117,7 +119,7 @@ export class AnomalyDetector {
         latest.timestamp,
         newAlerts
       );
-    } else if (has5 && last5.every(r => r.spo2 >= 96)) {
+    } else if (has5 && last5.every(r => r.spo2 >= ANOMALY_RULES.normalSpo2.min)) {
       // Normal SpO2 for 5+ readings -> resolve hypoxia
       this._resolveAlert('hypoxia', latest.timestamp);
     }

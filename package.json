@@ -5,6 +5,10 @@
   "description": "Continuous real-time health anomaly detection and clinical telemetry monitoring dashboard.",
   "author": "VitalGuard AI Team",
   "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "keywords": [
     "healthcare",
     "telemetry",
@@ -17,6 +21,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
