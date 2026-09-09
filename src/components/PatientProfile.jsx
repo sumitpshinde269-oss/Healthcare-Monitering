@@ -1,10 +1,6 @@
 import React from 'react';
 import { 
-  Activity, 
   AlertCircle, 
-  MapPin, 
-  Stethoscope, 
-  Clock, 
   ShieldCheck, 
   AlertTriangle,
   User
@@ -37,13 +33,7 @@ export default function PatientProfile({ healthStatus = "stable", isLoading = fa
     name: "Demo Patient",
     age: 68,
     gender: "Female",
-    bloodType: "A+",
-    room: "ICU Ward 3B • Bed 12",
-    admissionDate: "Oct 24, 2026",
-    diagnosis: "Post-op Coronary Artery Bypass",
-    attendingPhysician: "Dr. Marcus Chen, MD",
-    specialty: "Cardiovascular Surgery",
-    allergies: ["Penicillin", "Sulfa Drugs"]
+    bloodType: "A+"
   };
 
   if (isLoading) {
@@ -54,11 +44,6 @@ export default function PatientProfile({ healthStatus = "stable", isLoading = fa
           <div className="w-20 h-4 rounded skeleton-shimmer" />
         </div>
         <div className="h-16 rounded-xl skeleton-shimmer" />
-        <div className="space-y-3">
-          <div className="h-4 rounded skeleton-shimmer" />
-          <div className="h-4 rounded skeleton-shimmer" />
-          <div className="h-4 rounded skeleton-shimmer" />
-        </div>
       </div>
     );
   }
@@ -99,56 +84,6 @@ export default function PatientProfile({ healthStatus = "stable", isLoading = fa
         <div>
           <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">Location</span>
           <span className="text-xs font-semibold text-slate-800 mt-0.5 block truncate">Bed 12</span>
-        </div>
-      </div>
-
-      {/* Clinical Details List */}
-      <div className="space-y-3 text-xs">
-        <div className="flex items-start gap-2.5">
-          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" aria-hidden="true" />
-          <div className="min-w-0">
-            <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">Ward &amp; Room</span>
-            <span className="font-medium text-slate-800">{patient.room}</span>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-2.5">
-          <Activity className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" aria-hidden="true" />
-          <div className="min-w-0">
-            <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">Primary Diagnosis</span>
-            <span className="font-medium text-slate-800 leading-snug">{patient.diagnosis}</span>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-2.5">
-          <Stethoscope className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" aria-hidden="true" />
-          <div className="min-w-0">
-            <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">Attending Physician</span>
-            <span className="font-medium text-slate-800">{patient.attendingPhysician}</span>
-            <span className="text-[11px] text-slate-500 block">{patient.specialty}</span>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-2.5">
-          <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" aria-hidden="true" />
-          <div className="min-w-0">
-            <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">Known Allergies</span>
-            <div className="flex flex-wrap gap-1 mt-1">
-              {patient.allergies.map((allergy, idx) => (
-                <span key={idx} className="px-1.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200/80 rounded text-[11px] font-medium">
-                  {allergy}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-2.5">
-          <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" aria-hidden="true" />
-          <div className="min-w-0">
-            <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">Admission Date</span>
-            <span className="font-medium text-slate-700">{patient.admissionDate}</span>
-          </div>
         </div>
       </div>
     </article>

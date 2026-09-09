@@ -4,8 +4,7 @@ import {
   AlertCircle, 
   CheckCircle2, 
   Bell, 
-  ShieldCheck, 
-  Clock
+  ShieldCheck
 } from 'lucide-react';
 
 function formatRelativeTime(isoString) {
@@ -198,13 +197,6 @@ export default function AlertFeed({ alerts = [], isLoading = false }) {
         )}
       </div>
 
-      {/* Footer */}
-      <div className="pt-2 border-t border-slate-100 text-center">
-        <span className="text-[11px] text-slate-400 flex items-center justify-center gap-1 font-medium">
-          <Clock className="w-3 h-3" aria-hidden="true" />
-          Continuous buffer analysis
-        </span>
-      </div>
     </div>
   );
 }
