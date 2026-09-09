@@ -5,8 +5,6 @@ import {
   Flame,
   Droplet,
   HeartCrack,
-  Footprints,
-  Shield,
   Sliders,
   Play,
   Pause,
@@ -337,30 +335,11 @@ export default function App() {
       <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 sm:p-6" id="main-content">
         
         {/* Section Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
-          <div>
-            <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
-              Cardiac Intensive Care Unit (ICU-3B)
-            </h2>
-            <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-              <span>Continuous Telemetry</span>
-              <span>·</span>
-              <span>Activity State:</span>
-              <span className="font-semibold text-slate-700 uppercase tracking-wide bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-mono">
-                {latestVitals?.state?.replace('_', ' ') || 'RESTING'}
-              </span>
-            </div>
-          </div>
-
-          <div
-            className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm text-xs"
-            role="status"
-            aria-label={`Buffer ${history.length} of 60 readings`}
-          >
-            <span className="text-slate-500 font-medium">Telemetry Buffer:</span>
-            <span className="font-mono font-bold text-slate-800 tabular-nums">{history.length}/60</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-teal-500" aria-hidden="true" />
-          </div>
+        <div className="mb-5">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+            Cardiac Intensive Care Unit (ICU-3B)
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">Continuous Telemetry</p>
         </div>
 
         {/* 3-Column Responsive Grid */}
@@ -373,7 +352,7 @@ export default function App() {
 
           {/* Column 2: Live Vitals & Trends */}
           <section className="lg:col-span-6 flex flex-col gap-5" aria-label="Real-time Vitals and Trend Analytics">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <VitalsCard
                 label="Heart Rate"
                 value={latestVitals?.heartRate ?? 72}
@@ -396,17 +375,6 @@ export default function App() {
                 changeText={spo2Status === 'critical' ? 'Hypoxic' : 'Optimal'}
                 isLoading={isLoading}
               />
-              <VitalsCard
-                label="Daily Steps"
-                value={latestVitals?.steps ?? 8420}
-                unit="steps"
-                status="normal"
-                icon={Footprints}
-                trend="up"
-                range="Goal: 10,000"
-                changeText={`+${latestVitals?.steps ? latestVitals.steps - 8420 : 0} today`}
-                isLoading={isLoading}
-              />
             </div>
 
             <TrendChart history={history} isLoading={isLoading} />
@@ -419,20 +387,6 @@ export default function App() {
 
         </div>
       </main>
-
-      {/* Clean Minimal Footer */}
-      <footer className="w-full bg-white border-t border-slate-200 py-3.5 px-4 sm:px-6 lg:px-8 mt-4" role="contentinfo">
-        <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
-          <div className="flex items-center gap-1.5">
-            <Shield className="w-3.5 h-3.5 text-teal-700" aria-hidden="true" />
-            <span className="font-semibold text-slate-700">VitalGuard AI</span>
-            <span>· Telemetry &amp; Anomaly Detection</span>
-          </div>
-          <p className="text-center sm:text-right text-[11px] text-slate-400">
-            Real-time biometric monitoring simulation for clinical triage demonstration.
-          </p>
-        </div>
-      </footer>
 
     </div>
   );
