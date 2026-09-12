@@ -7,6 +7,7 @@ import AlertFeed from './components/AlertFeed.jsx';
 import SimulationControls from './components/SimulationControls.jsx';
 import { VitalsSimulator } from './lib/dataSimulator.js';
 import { AnomalyDetector } from './lib/anomalyDetector.js';
+import { advanceTelemetry, resetToBaseline } from './lib/resetBaseline.js';
 import { CLINICAL_THRESHOLDS, classifyHeartRate, classifySpo2 } from './lib/clinicalThresholds.js';
 
 const { heartRate: HR_RANGE, spo2: SPO2_RANGE } = CLINICAL_THRESHOLDS;
@@ -22,19 +23,10 @@ export default function App() {
   const [alerts, setAlerts] = useState({ active: [], all: [] });
   const [activeSimulation, setActiveSimulation] = useState(null);
 
-  // Advance the simulator one tick, run anomaly analysis, and publish state.
-  // Shared by the live interval and the manual controls so every path behaves identically.
-  const applySimulatorReading = useCallback(() => {
-    if (!simulatorRef.current) return;
-
-    const reading = simulatorRef.current.tick();
-    const currentHistory = simulatorRef.current.getHistory();
-    const analysis = detectorRef.current
-      ? detectorRef.current.analyze(currentHistory)
-      : { activeAlerts: [], allAlerts: [] };
-
+  // Publish one telemetry cycle to the dashboard.
+  const publishReading = useCallback(({ reading, history: nextHistory, analysis }) => {
     setLatestVitals(reading);
-    setHistory(currentHistory);
+    setHistory(nextHistory);
     setAlerts({ active: analysis.activeAlerts, all: analysis.allAlerts });
 
     // Drop the "Active" indicator once the injected anomaly has elapsed
@@ -42,6 +34,13 @@ export default function App() {
       setActiveSimulation(null);
     }
   }, []);
+
+  // Advance the live stream one cycle. The tick/analyse order lives in
+  // advanceTelemetry so the interval and the reset path cannot drift apart.
+  const applySimulatorReading = useCallback(() => {
+    if (!simulatorRef.current || !detectorRef.current) return;
+    publishReading(advanceTelemetry(simulatorRef.current, detectorRef.current));
+  }, [publishReading]);
 
   // Initialize simulator and detector
   useEffect(() => {
@@ -65,16 +64,14 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isPaused, applySimulatorReading]);
 
-  // Handle Reset to Normal Baseline
+  // Handle Reset to Normal Baseline. resetToBaseline owns the ordered
+  // clear/resolve/advance sequence; this handler only publishes its result.
   const handleResetBaseline = () => {
-    if (simulatorRef.current) {
-      simulatorRef.current.clearAnomaly();
-    }
-    if (detectorRef.current) {
-      detectorRef.current.resolveAll(new Date().toISOString());
-    }
-    setActiveSimulation(null);
-    applySimulatorReading();
+    if (!simulatorRef.current || !detectorRef.current) return;
+
+    publishReading(
+      resetToBaseline(simulatorRef.current, detectorRef.current, new Date().toISOString())
+    );
   };
 
   // Handle Demo Anomaly Injections (toggleable)
