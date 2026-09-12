@@ -1,22 +1,15 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { 
-  Activity, 
-  Heart, 
-  Flame,
-  Droplet,
-  HeartCrack,
-  Sliders,
-  Play,
-  Pause,
-  RotateCcw
-} from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { Activity, Heart, Play } from 'lucide-react';
 import PatientProfile from './components/PatientProfile.jsx';
 import VitalsCard from './components/VitalsCard.jsx';
 import TrendChart from './components/TrendChart.jsx';
 import AlertFeed from './components/AlertFeed.jsx';
+import SimulationControls from './components/SimulationControls.jsx';
 import { VitalsSimulator } from './lib/dataSimulator.js';
 import { AnomalyDetector } from './lib/anomalyDetector.js';
-import { classifyHeartRate, classifySpo2 } from './lib/clinicalThresholds.js';
+import { CLINICAL_THRESHOLDS, classifyHeartRate, classifySpo2 } from './lib/clinicalThresholds.js';
+
+const { heartRate: HR_RANGE, spo2: SPO2_RANGE } = CLINICAL_THRESHOLDS;
 
 export default function App() {
   const simulatorRef = useRef(null);
@@ -29,6 +22,27 @@ export default function App() {
   const [alerts, setAlerts] = useState({ active: [], all: [] });
   const [activeSimulation, setActiveSimulation] = useState(null);
 
+  // Advance the simulator one tick, run anomaly analysis, and publish state.
+  // Shared by the live interval and the manual controls so every path behaves identically.
+  const applySimulatorReading = useCallback(() => {
+    if (!simulatorRef.current) return;
+
+    const reading = simulatorRef.current.tick();
+    const currentHistory = simulatorRef.current.getHistory();
+    const analysis = detectorRef.current
+      ? detectorRef.current.analyze(currentHistory)
+      : { activeAlerts: [], allAlerts: [] };
+
+    setLatestVitals(reading);
+    setHistory(currentHistory);
+    setAlerts({ active: analysis.activeAlerts, all: analysis.allAlerts });
+
+    // Drop the "Active" indicator once the injected anomaly has elapsed
+    if (!reading.activeAnomaly) {
+      setActiveSimulation(null);
+    }
+  }, []);
+
   // Initialize simulator and detector
   useEffect(() => {
     simulatorRef.current = new VitalsSimulator();
@@ -36,84 +50,47 @@ export default function App() {
 
     // Brief initial loading
     const timer = setTimeout(() => {
-      if (simulatorRef.current && detectorRef.current) {
-        const initialReading = simulatorRef.current.tick();
-        const initialHistory = simulatorRef.current.getHistory();
-        const initialAnalysis = detectorRef.current.analyze(initialHistory);
-
-        setLatestVitals(initialReading);
-        setHistory(initialHistory);
-        setAlerts({ active: initialAnalysis.activeAlerts, all: initialAnalysis.allAlerts });
-        setIsLoading(false);
-      }
+      applySimulatorReading();
+      setIsLoading(false);
     }, 400);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [applySimulatorReading]);
 
   // Tick every 2 seconds when not paused
   useEffect(() => {
     if (isPaused) return;
 
-    const interval = setInterval(() => {
-      if (simulatorRef.current && detectorRef.current) {
-        const reading = simulatorRef.current.tick();
-        const currentHistory = simulatorRef.current.getHistory();
-        const analysis = detectorRef.current.analyze(currentHistory);
-
-        setLatestVitals(reading);
-        setHistory(currentHistory);
-        setAlerts({ active: analysis.activeAlerts, all: analysis.allAlerts });
-
-        // Clear active simulation button indicator if anomaly elapsed
-        if (!reading.activeAnomaly) {
-          setActiveSimulation(null);
-        }
-
-        // Console log new anomaly triggers
-        if (analysis.newAlerts && analysis.newAlerts.length > 0) {
-          analysis.newAlerts.forEach((newAlert) => {
-            console.warn(`[VitalGuard Anomaly Detected] [${newAlert.severity.toUpperCase()}]:`, newAlert);
-          });
-        }
-      }
-    }, 2000);
-
+    const interval = setInterval(applySimulatorReading, 2000);
     return () => clearInterval(interval);
-  }, [isPaused]);
+  }, [isPaused, applySimulatorReading]);
 
   // Handle Reset to Normal Baseline
   const handleResetBaseline = () => {
-    if (simulatorRef.current && detectorRef.current) {
+    if (simulatorRef.current) {
       simulatorRef.current.clearAnomaly();
-      setActiveSimulation(null);
-      const reading = simulatorRef.current.tick();
-      const currentHistory = simulatorRef.current.getHistory();
-      const analysis = detectorRef.current.analyze(currentHistory);
-      setLatestVitals(reading);
-      setHistory(currentHistory);
-      setAlerts({ active: analysis.activeAlerts, all: analysis.allAlerts });
     }
+    if (detectorRef.current) {
+      detectorRef.current.resolveAll(new Date().toISOString());
+    }
+    setActiveSimulation(null);
+    applySimulatorReading();
   };
 
   // Handle Demo Anomaly Injections (toggleable)
   const handleInjectAnomaly = (type) => {
-    if (simulatorRef.current) {
-      if (activeSimulation === type) {
-        simulatorRef.current.clearAnomaly();
-        setActiveSimulation(null);
-      } else {
-        simulatorRef.current.injectAnomaly(type);
-        setActiveSimulation(type);
-      }
-      // Immediate tick to reflect changes without waiting 2s
-      const reading = simulatorRef.current.tick();
-      const currentHistory = simulatorRef.current.getHistory();
-      const analysis = detectorRef.current ? detectorRef.current.analyze(currentHistory) : { activeAlerts: [], allAlerts: [] };
-      setLatestVitals(reading);
-      setHistory(currentHistory);
-      setAlerts({ active: analysis.activeAlerts, all: analysis.allAlerts });
+    if (!simulatorRef.current) return;
+
+    if (activeSimulation === type) {
+      simulatorRef.current.clearAnomaly();
+      setActiveSimulation(null);
+    } else {
+      simulatorRef.current.injectAnomaly(type);
+      setActiveSimulation(type);
     }
+
+    // Immediate tick so the change lands without waiting for the 2s interval
+    applySimulatorReading();
   };
 
   // Compute Trends from last 5 readings
@@ -193,132 +170,24 @@ export default function App() {
           </div>
 
           {/* Anomaly Simulation Controls */}
-          <div className="hidden md:flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200" aria-label="Anomaly simulation controls">
-            <div className="flex items-center gap-1 px-2 text-slate-500 text-xs font-medium">
-              <Sliders className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>Simulate:</span>
-            </div>
-            
-            <button
-              type="button"
-              onClick={() => handleInjectAnomaly('tachycardia')}
-              aria-pressed={activeSimulation === 'tachycardia'}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 ${
-                activeSimulation === 'tachycardia'
-                  ? 'bg-rose-600 text-white shadow-sm font-semibold'
-                  : 'bg-white text-slate-700 hover:bg-rose-50 hover:text-rose-700 border border-slate-200/80'
-              }`}
-              title="Click to simulate acute heart rate spike (>170 BPM). Click again to clear."
-            >
-              <Flame className="w-3.5 h-3.5 text-rose-500" aria-hidden="true" />
-              Tachycardia
-              {activeSimulation === 'tachycardia' && <span className="text-[10px] opacity-80">(Active)</span>}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleInjectAnomaly('hypoxia')}
-              aria-pressed={activeSimulation === 'hypoxia'}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 ${
-                activeSimulation === 'hypoxia'
-                  ? 'bg-amber-600 text-white shadow-sm font-semibold'
-                  : 'bg-white text-slate-700 hover:bg-amber-50 hover:text-amber-700 border border-slate-200/80'
-              }`}
-              title="Click to simulate SpO2 oxygen desaturation (88%). Click again to clear."
-            >
-              <Droplet className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />
-              Hypoxia
-              {activeSimulation === 'hypoxia' && <span className="text-[10px] opacity-80">(Active)</span>}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleInjectAnomaly('bradycardia')}
-              aria-pressed={activeSimulation === 'bradycardia'}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 ${
-                activeSimulation === 'bradycardia'
-                  ? 'bg-slate-800 text-white shadow-sm font-semibold'
-                  : 'bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80'
-              }`}
-              title="Click to simulate sudden heart rate drop (~40 BPM). Click again to clear."
-            >
-              <HeartCrack className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
-              Bradycardia
-              {activeSimulation === 'bradycardia' && <span className="text-[10px] opacity-80">(Active)</span>}
-            </button>
-
-            <div className="h-4 w-px bg-slate-200 mx-0.5" aria-hidden="true" />
-
-            <button
-              type="button"
-              onClick={handleResetBaseline}
-              className="px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400"
-              title="Reset simulation and return to baseline vitals"
-            >
-              <RotateCcw className="w-3 h-3 text-slate-500" aria-hidden="true" />
-              Reset
-            </button>
-          </div>
+          <SimulationControls
+            variant="desktop"
+            activeSimulation={activeSimulation}
+            onSelect={handleInjectAnomaly}
+            onReset={handleResetBaseline}
+          />
 
         </div>
 
         {/* Mobile Simulation Controls */}
-        <div className="md:hidden flex items-center justify-between px-4 py-2 bg-slate-100/90 border-t border-slate-200 text-xs gap-2">
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setIsPaused(!isPaused)}
-              className="p-1.5 rounded bg-white border border-slate-200 text-slate-700"
-              title={isPaused ? "Resume" : "Pause"}
-            >
-              {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
-            </button>
-            <span className="text-slate-500 font-medium shrink-0 flex items-center gap-1">
-              <Sliders className="w-3 h-3" aria-hidden="true" />
-              Sim:
-            </span>
-          </div>
-          <div className="flex items-center gap-1 overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => handleInjectAnomaly('tachycardia')}
-              aria-pressed={activeSimulation === 'tachycardia'}
-              className={`px-2 py-1 rounded text-xs font-medium shrink-0 ${
-                activeSimulation === 'tachycardia' ? 'bg-rose-600 text-white font-semibold' : 'bg-white text-slate-700 border border-slate-200'
-              }`}
-            >
-              Tachycardia
-            </button>
-            <button
-              type="button"
-              onClick={() => handleInjectAnomaly('hypoxia')}
-              aria-pressed={activeSimulation === 'hypoxia'}
-              className={`px-2 py-1 rounded text-xs font-medium shrink-0 ${
-                activeSimulation === 'hypoxia' ? 'bg-amber-600 text-white font-semibold' : 'bg-white text-slate-700 border border-slate-200'
-              }`}
-            >
-              Hypoxia
-            </button>
-            <button
-              type="button"
-              onClick={() => handleInjectAnomaly('bradycardia')}
-              aria-pressed={activeSimulation === 'bradycardia'}
-              className={`px-2 py-1 rounded text-xs font-medium shrink-0 ${
-                activeSimulation === 'bradycardia' ? 'bg-slate-800 text-white font-semibold' : 'bg-white text-slate-700 border border-slate-200'
-              }`}
-            >
-              Bradycardia
-            </button>
-            <button
-              type="button"
-              onClick={handleResetBaseline}
-              className="p-1 rounded text-xs font-medium shrink-0 bg-white text-slate-700 border border-slate-200"
-              title="Reset baseline"
-            >
-              <RotateCcw className="w-3 h-3 text-slate-500" />
-            </button>
-          </div>
-        </div>
+        <SimulationControls
+          variant="mobile"
+          activeSimulation={activeSimulation}
+          onSelect={handleInjectAnomaly}
+          onReset={handleResetBaseline}
+          isPaused={isPaused}
+          onTogglePause={() => setIsPaused(!isPaused)}
+        />
       </header>
 
       {/* Main Dashboard Layout */}
@@ -350,7 +219,7 @@ export default function App() {
                 status={hrStatus}
                 icon={Heart}
                 trend={hrTrend}
-                range="Baseline: 60 - 100"
+                range={`Baseline: ${HR_RANGE.normalMin} - ${HR_RANGE.normalMax}`}
                 changeText={hrTrend === 'stable' ? 'Stable' : `Δ ${hrDelta > 0 ? '+' : ''}${hrDelta} BPM`}
                 isLoading={isLoading}
               />
@@ -361,7 +230,7 @@ export default function App() {
                 status={spo2Status}
                 icon={Activity}
                 trend={spo2Trend}
-                range="Baseline: 95 - 100%"
+                range={`Baseline: ${SPO2_RANGE.warningLow} - 100%`}
                 changeText={spo2Status === 'critical' ? 'Hypoxic' : spo2Trend === 'stable' ? 'Optimal' : `Δ ${spo2Delta > 0 ? '+' : ''}${spo2Delta}%`}
                 isLoading={isLoading}
               />

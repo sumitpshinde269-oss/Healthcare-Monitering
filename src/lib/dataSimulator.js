@@ -4,8 +4,7 @@
  */
 
 export class VitalsSimulator {
-  constructor(initialSteps = 8420) {
-    this.activityStates = ['resting', 'light_activity', 'exertion'];
+  constructor() {
     this.currentState = 'resting';
     this.ticksInCurrentState = 0;
     this.stateDuration = this._getRandomInt(20, 40);
@@ -13,7 +12,6 @@ export class VitalsSimulator {
     // Initial baseline vitals
     this.heartRate = 72;
     this.spo2 = 98;
-    this.steps = initialSteps;
 
     // Spontaneous natural dip tracker for SpO2
     this.spontaneousDipTicks = 0;
@@ -100,18 +98,6 @@ export class VitalsSimulator {
     }
   }
 
-  _updateSteps() {
-    let delta = 0;
-    if (this.currentState === 'resting') {
-      delta = 0;
-    } else if (this.currentState === 'light_activity') {
-      delta = this._getRandomInt(1, 3);
-    } else if (this.currentState === 'exertion') {
-      delta = this._getRandomInt(3, 6);
-    }
-    this.steps += delta;
-  }
-
   /**
    * Force inject a specific anomaly for demo purposes
    * @param {'tachycardia' | 'hypoxia' | 'bradycardia'} type 
@@ -126,22 +112,26 @@ export class VitalsSimulator {
       type,
       ticksRemaining: 10
     };
-    console.info(`[VitalsSimulator] Anomaly injected: "${type}" for 10 ticks.`);
   }
 
   /**
-   * Clear active anomaly immediately
+   * Clear the active anomaly and return the simulator to a resting baseline.
+   * Also cancels any in-flight spontaneous SpO2 dip and activity state, so the
+   * reset actually holds instead of being overwritten by the next tick.
    */
   clearAnomaly() {
     this.activeAnomaly = null;
+    this.spontaneousDipTicks = 0;
+    this.currentState = 'resting';
+    this.ticksInCurrentState = 0;
+    this.stateDuration = this._getRandomInt(20, 40);
     this.heartRate = 72;
     this.spo2 = 98;
-    console.info('[VitalsSimulator] Anomaly cleared. Baseline restored.');
   }
 
   /**
    * Advance simulation by 1 tick and return latest telemetry reading
-   * @returns {{ heartRate: number, spo2: number, steps: number, timestamp: string, state: string, activeAnomaly: string | null }}
+   * @returns {{ heartRate: number, spo2: number, timestamp: string, state: string, activeAnomaly: string | null }}
    */
   tick() {
     // 1. Advance state transitions
@@ -153,7 +143,6 @@ export class VitalsSimulator {
     // 2. Base natural metrics
     this._updateHeartRate();
     this._updateSpO2();
-    this._updateSteps();
 
     // 3. Override if active anomaly is injected
     let anomalyType = null;
@@ -180,7 +169,6 @@ export class VitalsSimulator {
     const reading = {
       heartRate: this.heartRate,
       spo2: this.spo2,
-      steps: this.steps,
       timestamp: new Date().toISOString(),
       state: this.currentState,
       activeAnomaly: anomalyType
@@ -202,6 +190,3 @@ export class VitalsSimulator {
     return [...this.history];
   }
 }
-
-// Export default singleton instance as well for convenience
-export const simulatorInstance = new VitalsSimulator();

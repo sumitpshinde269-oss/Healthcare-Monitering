@@ -38,17 +38,18 @@ VitalGuard AI is a real-time, responsive clinical monitoring dashboard designed 
 
 ```
 VitalGuardAI/
-├── public/
 ├── src/
 │   ├── components/
 │   │   ├── AlertFeed.jsx          # Live clinical alerts feed & triage filter
 │   │   ├── PatientProfile.jsx     # Patient clinical metadata & health summary badge
+│   │   ├── SimulationControls.jsx # Shared desktop/mobile anomaly trigger toolbar
 │   │   ├── TrendChart.jsx         # Recharts live multi-vital telemetry visualizer
 │   │   └── VitalsCard.jsx         # Telemetry metric cards with animated numbers & trends
 │   ├── lib/
 │   │   ├── anomalyDetector.js     # Rolling window anomaly evaluation & lifecycle engine
+│   │   ├── clinicalThresholds.js  # Shared vital-sign ranges & status classifiers
 │   │   └── dataSimulator.js       # Biometric telemetry stream generator & state machine
-│   ├── App.jsx                    # Dashboard shell, header & anomaly simulation toolbar
+│   ├── App.jsx                    # Dashboard shell, header & telemetry orchestration
 │   ├── index.css                  # Tailwind CSS theme tokens & utility styles
 │   └── main.jsx                   # React DOM root mounting
 ├── index.html                     # HTML5 template with Google Fonts
@@ -65,7 +66,7 @@ VitalGuardAI/
 flowchart TD
     A[VitalsSimulator State Machine] -->|Generates tick every 2s| B[Rolling History Buffer (60 Readings)]
     B --> C[App.jsx Reactive State]
-    C -->|Telemetry stream| D[VitalsCard.jsx (HR, SpO2, Steps)]
+    C -->|Telemetry stream| D[VitalsCard.jsx (HR, SpO2)]
     C -->|Historical window| E[TrendChart.jsx (Recharts)]
     B --> F[AnomalyDetector Engine]
     F -->|Evaluates thresholds & rate of change| G[Active / Resolved Alerts]

@@ -31,7 +31,7 @@ export class AnomalyDetector {
 
   /**
    * Analyze the rolling vitals history and update active/resolved alerts.
-   * @param {Array<{ heartRate: number, spo2: number, steps: number, timestamp: string }>} history 
+   * @param {Array<{ heartRate: number, spo2: number, timestamp: string }>} history 
    * @returns {{ activeAlerts: Array<Object>, newAlerts: Array<Object>, allAlerts: Array<Object> }}
    */
   analyze(history = []) {
@@ -212,6 +212,17 @@ export class AnomalyDetector {
   }
 
   /**
+   * Resolve every active alert at once — used when the operator resets to
+   * baseline so the triage feed does not keep reporting stale critical state.
+   * @param {string} timestamp
+   */
+  resolveAll(timestamp) {
+    for (const key of Array.from(this.activeAlerts.keys())) {
+      this._resolveAlert(key, timestamp);
+    }
+  }
+
+  /**
    * Get full history of alerts
    */
   getAlertLog() {
@@ -225,6 +236,4 @@ export class AnomalyDetector {
     return Array.from(this.activeAlerts.values());
   }
 }
-
-export const anomalyDetectorInstance = new AnomalyDetector();
 

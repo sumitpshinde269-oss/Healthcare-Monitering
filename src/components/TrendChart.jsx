@@ -142,6 +142,13 @@ export default function TrendChart({ history = [], isLoading = false }) {
     return { avgHr, minHr, maxHr, avgSpo2 };
   }, [history]);
 
+  // Summary accents are driven by the shared clinical classifiers, not local
+  // magic numbers, so the KPI highlights never drift from the alert engine.
+  const peakHr = Number(summary.maxHr);
+  const avgSpo2 = Number(summary.avgSpo2);
+  const isPeakHrAbnormal = Number.isFinite(peakHr) && classifyHeartRate(peakHr) !== 'normal';
+  const isAvgSpo2Abnormal = Number.isFinite(avgSpo2) && classifySpo2(avgSpo2) !== 'normal';
+
   const toggleBtn =
     'px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400';
 
@@ -325,12 +332,12 @@ export default function TrendChart({ history = [], isLoading = false }) {
           {
             label: 'Peak HR',
             value: `${summary.maxHr} BPM`,
-            accent: Number(summary.maxHr) > 130 ? 'text-rose-600 font-semibold' : 'text-slate-900'
+            accent: isPeakHrAbnormal ? 'text-rose-600 font-semibold' : 'text-slate-900'
           },
           {
             label: 'Avg SpO2',
             value: `${summary.avgSpo2}%`,
-            accent: Number(summary.avgSpo2) < 95 ? 'text-amber-600 font-semibold' : 'text-teal-700 font-semibold'
+            accent: isAvgSpo2Abnormal ? 'text-amber-600 font-semibold' : 'text-teal-700 font-semibold'
           }
         ].map((stat) => (
           <div
