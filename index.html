@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f766e" />
+    <meta name="color-scheme" content="light" />
+    <meta name="format-detection" content="telephone=no" />
     <meta name="description" content="VitalGuard AI — Continuous health anomaly detection and clinical telemetry monitoring." />
     <meta name="robots" content="index, follow" />
     <meta property="og:title" content="VitalGuard AI — Clinical Telemetry & Health Monitoring" />
@@ -23,6 +25,14 @@
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <div style="font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; max-width: 32rem; margin: 4rem auto; padding: 0 1.5rem; text-align: center; color: #0f172a;">
+        <h1 style="font-size: 1.125rem; font-weight: 700; margin: 0 0 0.5rem;">VitalGuard AI requires JavaScript</h1>
+        <p style="font-size: 0.875rem; line-height: 1.5; color: #64748b; margin: 0;">
+          This dashboard renders live clinical telemetry in the browser. Please enable JavaScript to continue.
+        </p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

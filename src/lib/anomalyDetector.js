@@ -214,12 +214,18 @@ export class AnomalyDetector {
   /**
    * Resolve every active alert at once — used when the operator resets to
    * baseline so the triage feed does not keep reporting stale critical state.
+   *
+   * Also arms the rapid-change cooldown: a reset is an instantaneous jump back
+   * to baseline (e.g. 171 -> 72 BPM), and that artifact must not be reported as
+   * an acute rhythm event. Arming the existing cooldown lets the 3-reading
+   * window refill with baseline data before rate-of-change is judged again.
    * @param {string} timestamp
    */
   resolveAll(timestamp) {
     for (const key of Array.from(this.activeAlerts.keys())) {
       this._resolveAlert(key, timestamp);
     }
+    this.lastRapidChangeTick = this.totalTicksAnalyzed;
   }
 
   /**

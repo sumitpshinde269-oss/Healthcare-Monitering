@@ -132,6 +132,16 @@ To preview the production build locally:
 npm run preview
 ```
 
+### 6. Run the Regression Suite
+
+The clinical threshold bands, the alert lifecycle, and the reset-to-baseline contract are pinned by a zero-dependency suite built on Node's native test runner:
+
+```bash
+npm test
+```
+
+No test framework is installed, so dependencies stay lean and the suite runs on the Node version the project already requires.
+
 ---
 
 ## 📜 Available NPM Scripts
@@ -141,6 +151,7 @@ npm run preview
 | `npm run dev` | `vite` | Starts the local development server at `http://localhost:5173` |
 | `npm run build` | `vite build` | Compiles and minifies assets into the `dist/` directory |
 | `npm run check` | `vite build` | Validates the production build (no deploy) |
+| `npm test` | `node --test` | Runs the regression suite for the threshold, detector, and simulator modules |
 | `npm run preview` | `vite preview` | Previews the production build locally |
 
 ---
